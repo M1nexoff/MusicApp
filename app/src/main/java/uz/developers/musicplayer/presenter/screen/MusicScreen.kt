@@ -1,15 +1,18 @@
 package uz.developers.musicplayer.presenter.screen
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.Cursor
+import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
-import android.util.Log
+import android.provider.MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI
 import android.view.View
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import by.kirich1409.viewbindingdelegate.viewBinding
@@ -18,6 +21,9 @@ import uz.developers.musicplayer.R
 import uz.developers.musicplayer.data.Music
 import uz.developers.musicplayer.databinding.ScreenMusicBinding
 import uz.developers.musicplayer.presenter.adapter.MusicsAdapter
+import uz.developers.musicplayer.utils.MyAppManager
+import uz.developers.musicplayer.data.ActionEnum
+import uz.developers.musicplayer.presenter.service.MyService
 
 @AndroidEntryPoint
 class MusicScreen : Fragment(R.layout.screen_music) {
@@ -38,123 +44,123 @@ class MusicScreen : Fragment(R.layout.screen_music) {
                 arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
                 REQUEST_PERMISSION_CODE
             )
-            loadMusicFiles()
         } else {
             loadMusicFiles()
         }
+
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.recycle.adapter = adapter
-        binding.recycle.layoutManager=  LinearLayoutManager(requireContext())
-
+        adapter.cursor = MyAppManager.cursor
+        binding.apply {
+            recycle.adapter = adapter
+            recycle.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL,false)
+            adapter.onClick = {
+                findNavController().navigate(MusicScreenDirections.actionMusicScreenToCurrentMusicScreen())
+            }
+        }
         adapter.submitList(musicList)
+        adapter.cursor = MyAppManager.cursor
 
-        adapter.onClick={
-            findNavController().navigate(MusicScreenDirections.actionMusicScreenToCurrentMusicScreen(it))
+        binding.currentMusicLayout.setOnClickListener {
+            findNavController().navigate(MusicScreenDirections.actionMusicScreenToCurrentMusicScreen())
         }
-    }
+//        binding.buttonNextScreen.setOnClickListener { startMyService(ActionEnum.NEXT) }
+//        binding.buttonPrevScreen.setOnClickListener { startMyService(ActionEnum.PREV) }
+//        binding.buttonManageScreen.setOnClickListener { startMyService(ActionEnum.MANAGE) }
+        adapter.selectMusicPositionListener = {
+            MyAppManager.selectMusicPos = it
+            startMyService(ActionEnum.PLAY)
+        }
 
+        MyAppManager.playMusicLiveData.observe(viewLifecycleOwner, playMusicObserver)
+        MyAppManager.isPlayingLiveData.observe(viewLifecycleOwner, isPlayingObserver)
+    }
     private fun loadMusicFiles() {
-        val contentResolver = requireActivity().contentResolver
-        val uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-        val projection = arrayOf(MediaStore.Audio.AudioColumns.DATA)
+        val projection = arrayOf(
+            MediaStore.Audio.Media._ID,
+            MediaStore.Audio.Media.DATA,
+            MediaStore.Audio.Media.TITLE,
+            MediaStore.Audio.Media.ARTIST,
+            MediaStore.Audio.Media.DURATION,
+            MediaStore.Audio.Media.ALBUM_ID
+        )
+        val sortOrder = "${MediaStore.Audio.Media.DISPLAY_NAME} ASC"
+        val cursor: Cursor? = requireActivity().contentResolver.query(
+            MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+            projection,
+            "${MediaStore.Audio.Media.IS_MUSIC} != 0",
+            null,
+            sortOrder
+        )
 
-        val cursor: Cursor? = contentResolver.query(uri, projection, null, null, null)
+        if (cursor != null && cursor.moveToFirst()) {
+            do {
+                val id = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media._ID))
+                val data = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA))
+                val title = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE))
+                val duration = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION))
+                val artist = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST))
+                val albumId = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID))
+                val albumArt = getAlbumArt(albumId)
 
-        cursor?.use {
-            var dataIndex: Int
-            var titleIndex: Int
-            var artistIndex: Int
-            var pictureIndex: Int
+                val defaultAlbumArtUri = "android.resource://${requireActivity().packageName}/${R.drawable.ava}"
 
-            try {
-                dataIndex = it.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.DATA)
-            } catch (e: Exception) {
-                dataIndex = -1
-                e.printStackTrace()
-            }
-
-            try {
-                titleIndex = it.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.TITLE)
-            } catch (e: Exception) {
-                titleIndex = -1
-                e.printStackTrace()
-            }
-
-            try {
-                artistIndex = it.getColumnIndexOrThrow(MediaStore.Audio.AudioColumns.ARTIST)
-            } catch (e: Exception) {
-                artistIndex = -1
-                e.printStackTrace()
-            }
-
-            try {
-                pictureIndex = it.getColumnIndexOrThrow(MediaStore.Audio.Albums.ALBUM_ART)
-            } catch (e: Exception) {
-                pictureIndex = -1
-                e.printStackTrace()
-            }
-
-            while (it.moveToNext()) {
-                var data: String
-                var musicName: String
-                var artistName: String
-                var picture: String
-
-                try {
-                    data = it.getString(dataIndex)
-                } catch (e: Exception) {
-                    data = ""
-                    e.printStackTrace()
-                }
-
-                try {
-                    musicName = it.getString(titleIndex)
-                } catch (e: Exception) {
-                    musicName = ""
-                    e.printStackTrace()
-                }
-
-                try {
-                    artistName = it.getString(artistIndex)
-                } catch (e: Exception) {
-                    artistName = ""
-                    e.printStackTrace()
-                }
-
-                try {
-                    picture = it.getString(pictureIndex)
-                } catch (e: Exception) {
-                    picture = ""
-                    e.printStackTrace()
-                }
-
-                musicList.add(Music(musicName, artistName, picture, data))
-            }
+                musicList.add(Music(id = id,data = data, title = title, artist = artist, duration =  duration, image =  albumArt ?: defaultAlbumArtUri))
+            } while (cursor.moveToNext())
         }
-
-
-        Log.d("TTT","${musicList.size}")
-
-        for (i in 0..<musicList.size) {
-            Log.d("TTT","${musicList[i].name}-> ${musicList[i].author}->${musicList[i].data}->${musicList[i].img}")
-        }
-
-
+        cursor?.close()
     }
-    @Deprecated("Deprecated in Java")
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_PERMISSION_CODE) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                loadMusicFiles()
+
+    private fun getAlbumArt(albumId: Long): String? {
+        val projection = arrayOf(MediaStore.Audio.Albums._ID, MediaStore.Audio.Albums.ALBUM_ART)
+        val selection = "${MediaStore.Audio.Albums._ID} = ?"
+        val selectionArgs = arrayOf(albumId.toString())
+
+        val cursor = requireActivity().contentResolver.query(
+            EXTERNAL_CONTENT_URI,
+            projection,
+            selection,
+            selectionArgs,
+            null
+        )
+
+        var albumArt: String? = null
+        cursor?.use {
+            if (it.moveToFirst()) {
+                albumArt = it.getString(it.getColumnIndexOrThrow(MediaStore.Audio.Albums.ALBUM_ART))
             }
         }
+
+        cursor?.close()
+        return albumArt
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_PERMISSION_CODE && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            loadMusicFiles()
+        }
+    }
+
+    private fun startMyService(action  : ActionEnum) {
+        val intent = Intent(requireContext(), MyService::class.java)
+        intent.putExtra("COMMAND", action)
+        if (Build.VERSION.SDK_INT >= 26) {
+            requireActivity().startForegroundService(intent)
+        } else requireActivity().startService(intent)
+    }
+
+    private val playMusicObserver = Observer<Music> { data ->
+        binding.apply {
+            currentMusicName.text= data.title
+            textCurrentMusicAuthor.text = data.artist
+        }
+    }
+
+    private val isPlayingObserver = Observer<Boolean> {
+        if (it) binding.play.setImageResource(R.drawable.stop)
+        else binding.play.setImageResource(R.drawable.play)
     }
 }

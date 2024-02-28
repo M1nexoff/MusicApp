@@ -20,7 +20,7 @@ class SplashViewModelImpl @Inject constructor() : ViewModel(), SplashViewModel {
 
     private fun determineInitialScreen() {
         viewModelScope.launch {
-            delay(1500)
+            delay(500)
             navigateToScreen.value = Unit
         }
     }

@@ -16,6 +16,7 @@
         android:src="@drawable/ava"
         />
     <TextView
+        android:maxLines="1"
         android:textColor="@color/white"
         android:id="@+id/music_name"
         android:layout_width="wrap_content"
@@ -28,6 +29,7 @@
         android:textSize="20dp"
         android:fontFamily="@font/nunito"/>
     <TextView
+        android:maxLines="1"
         android:textColor="@color/white"
         android:id="@+id/author"
         android:layout_width="wrap_content"

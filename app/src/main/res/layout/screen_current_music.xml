@@ -5,6 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:background="@color/black"
     android:padding="16dp">
 
     <ImageView
@@ -17,33 +18,87 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
+        android:padding="32dp"
         android:id="@+id/image"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@+id/seekBar"
+        app:layout_constraintBottom_toTopOf="@+id/music_name"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginBottom="56dp"
-        android:layout_marginTop="56dp"
+        android:layout_marginTop="50dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         android:src="@drawable/ava"
         android:scaleType="centerCrop"/>
 
     <SeekBar
+        android:outlineAmbientShadowColor="@color/white"
+        android:outlineSpotShadowColor="@color/white"
+        android:backgroundTint="@color/white"
+
         android:id="@+id/seekBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:max="100"
-        app:layout_constraintVertical_bias="0.7"
+        app:layout_constraintVertical_bias="0.75"
         android:progress="0"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+    <TextView
+        android:textColor="@color/white"
+        android:id="@+id/text_audio_played_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:fontFamily="@font/nunito"
+        android:text="11:32"
+        app:layout_constraintStart_toStartOf="@id/seekBar"
+        app:layout_constraintTop_toBottomOf="@id/seekBar" />
 
+    <TextView
+        android:textColor="@color/white"
+        android:id="@+id/text_audio_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:fontFamily="@font/nunito"
+        android:text="13:00"
+        app:layout_constraintEnd_toEndOf="@id/seekBar"
+        app:layout_constraintTop_toBottomOf="@id/seekBar" />
+    <TextView
+        android:textColor="@color/white"
+        android:fontFamily="@font/nunito"
+        android:id="@+id/music_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="56dp"
+        android:gravity="center"
+        android:text="My Demons"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/image" />
+
+    <TextView
+        android:textColor="@color/white"
+        android:gravity="center"
+        android:fontFamily="@font/nunito"
+        android:id="@+id/music_author"
+        android:layout_width="match_parent"
+        android:layout_height="20dp"
+        android:layout_marginHorizontal="56dp"
+        android:text="Starset"
+        android:layout_marginBottom="24dp"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toTopOf="@+id/seekBar"
+        app:layout_constraintStart_toStartOf="@id/music_name"
+        app:layout_constraintTop_toBottomOf="@id/music_name"/>
     <ImageView
         android:id="@+id/play"
-        android:layout_width="80dp"
-        android:layout_height="80dp"
-        android:src="@drawable/play_dark"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:src="@drawable/play"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
